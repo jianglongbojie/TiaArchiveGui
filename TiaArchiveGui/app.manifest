@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  TiaArchiveGui application manifest.
+
+  This file is EMBEDDED INTO THE EXE at build time (see <ApplicationManifest> in
+  TiaArchiveGui.csproj), so the published exe is a single self-contained file and no
+  TiaArchiveGui.exe.config is needed any more.
+
+  Deliberately kept ASCII-only: the Win32 manifest parser is fussy about encodings and
+  non-ASCII content can turn a typo into an unfixable-looking "side-by-side configuration
+  is incorrect" start-up failure. The Chinese explanation lives in README.md (section 7).
+-->
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <assemblyIdentity version="1.0.0.0" name="TiaArchiveGui.app" />
+
+  <!--
+    Keep asInvoker. This app must NOT ask for elevation on start-up: it only *tries* to add
+    the current user to the "Siemens TIA Openness" local group, and when that fails it writes
+    a .cmd file for the user to run by hand. requireAdministrator would pop a UAC prompt on
+    every launch and would break that "run as a normal user" behaviour.
+  -->
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v2">
+    <security>
+      <requestedPrivileges xmlns="urn:schemas-microsoft-com:asm.v3">
+        <requestedExecutionLevel level="asInvoker" uiAccess="false" />
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+
+  <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
+    <application>
+      <!-- Windows 10 / 11 (both use this GUID; there is no separate Windows 11 entry) -->
+      <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}" />
+    </application>
+  </compatibility>
+
+  <!--
+    DPI awareness. This is what replaces "DpiAwareness = PerMonitorV2" that used to sit in
+    App.config, and it is why the exe no longer needs a .config file next to it.
+
+    ORDER MATTERS: <dpiAware> (2005 namespace) must come BEFORE <dpiAwareness> (2016 namespace).
+      * dpiAware="true/pm"  : per-monitor awareness for Windows 7 / 8 / 8.1 / early 10.
+      * dpiAwareness="PerMonitorV2, PerMonitor" : Windows 10 1607+; V2 first, V1 as fallback.
+
+    Without this the process is DPI-unaware, Windows bitmap-stretches the whole window on a
+    125%-200% display (blurry UI), and the "text clipped" problems come back because text is
+    drawn at the scaled pixel size while the layout stays at 96 DPI.
+  -->
+  <application xmlns="urn:schemas-microsoft-com:asm.v3">
+    <windowsSettings>
+      <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/pm</dpiAware>
+      <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2, PerMonitor</dpiAwareness>
+    </windowsSettings>
+  </application>
+</assembly>

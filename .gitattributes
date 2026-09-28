@@ -1,0 +1,15 @@
+# 换行统一：仓库里存 LF，检出时按各平台自动处理 —— 避免 Windows / 其它平台协作时的整文件 diff
+* text=auto
+
+*.cs       text
+*.csproj   text
+*.manifest text
+*.md       text
+*.txt      text
+
+# 二进制文件不做换行转换
+*.png binary
+*.jpg binary
+*.exe binary
+*.dll binary
+*.ico binary

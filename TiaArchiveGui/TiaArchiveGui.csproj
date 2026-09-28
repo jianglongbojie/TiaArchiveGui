@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ============================================================================
+  TiaArchiveGui.csproj
+  TIA Portal Openness 归档助手的图形界面版（.NET Framework 4.8 WinForms）
+
+  设计要点：
+    1) 核心逻辑不复制一份，而是用 <Compile Include="..\TiaOpennessKit\..." Link="..."/>
+       链接引用共享内核 TiaOpennessKit（归档/检索/探测/日志/环境探测/网络设备读取）。
+       共享内核是**唯一真源**：新工具只链接它需要的那些文件即可复用；
+       内核升级后，各工具替换对应文件（或重新编译）就能吃到更新。
+    2) OutputType = WinExe：双击运行不弹控制台黑窗。
+    3) Siemens 引用同样是 Private=false（Copy Local=False），运行期由 AssemblyResolve
+       从 TIA 安装目录加载 —— 与命令行版完全一致。
+    4) 编译期 API 目录可用 /p:TiaPublicApiDir="...\PublicAPI\V21\net48\" 覆盖。
+  ============================================================================
+-->
+<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props"
+          Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{7A4E9C21-3B48-4D6F-9C02-5E7D1A6B4F33}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>TiaArchiveGui</RootNamespace>
+    <AssemblyName>TiaArchiveGui</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <!-- 与命令行版保持一致：Openness 官方示例使用 C# 7.3 语法 -->
+    <LangVersion>7.3</LangVersion>
+    <!-- 源文件是 UTF-8，跟编译器说清楚，避免中文字符串被按 GBK 解码成乱码 -->
+    <CodePage>65001</CodePage>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+
+    <!-- ★ DPI 感知声明挪进了 app.manifest，它会被**编译进 exe 内部**（不再用 App.config）。
+         这样发布时只要拷一个 TiaArchiveGui.exe 就够了，不需要随附 .exe.config ——
+         原先靠 App.config 的 DpiAwareness 时，丢了那个文件进程就退化成 DPI 不感知，
+         在 175% 缩放的高分屏上整窗口被系统拉伸、界面发虚。
+         注意：这个属性必须与「删掉 <AppConfig> 与 App.config」同步做 ——
+         <AppConfig> 指向的文件不存在会让构建直接失败。 -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+
+  <!-- BCL + WinForms 引用 -->
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Xml.Linq" />
+    <!-- "打包项目文件夹"模式用它生成 .zip -->
+    <Reference Include="System.IO.Compression" />
+  </ItemGroup>
+
+  <!--
+    ★ 这里**不再**引用任何 Siemens 程序集。
+    原因：Openness 的程序集在版本之间连**文件名**都不一样 ——
+      V15~V19 是 Siemens.Engineering.dll；V20/V21 是 Siemens.Engineering.Base.dll。
+    一旦编译期引用，exe 的引用表就把某个版本钉死，换台机器必然加载失败。
+    现在改为运行期由 Tia\OpennessApi.cs 从本机 API 目录加载 + 按类型名反射调用，
+    所以一份 exe 可以直接用在 V15~V21 上，编译也不再需要本机装有 TIA。
+  -->
+
+    <!-- 界面层源文件 -->
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="MainForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MainForm.Actions.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MainForm.Batch.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="CoreRunner.cs" />
+    <!-- 与界面无关的核心规则自检（项目识别 / 输出路径 / 文件名规则）：
+         界面自检（uicheck 模式）与无头自检（selftest 模式）共用同一份断言 -->
+    <Compile Include="CoreSelfChecks.cs" />
+    <Compile Include="BatchChildJob.cs" />
+    <Compile Include="GuiSettings.cs" />
+  </ItemGroup>
+
+  <!--
+    核心逻辑：链接引用共享内核 TiaOpennessKit 的源文件（不复制、不修改）。
+    这样界面版与（已归档的）命令行版、以及以后的新工具共用同一套实现。
+    ★ 内核里已不再包含命令行参数解析器（Cli/Options.cs 随命令行版归档），
+      只保留 TiaSession 需要的 TiaStartMode 枚举。
+  -->
+  <ItemGroup>
+    <Compile Include="..\TiaOpennessKit\ExitCodes.cs" Link="Core\ExitCodes.cs" />
+    <Compile Include="..\TiaOpennessKit\Logging.cs" Link="Core\Logging.cs" />
+    <Compile Include="..\TiaOpennessKit\SizeFormat.cs" Link="Core\SizeFormat.cs" />
+    <Compile Include="..\TiaOpennessKit\ArchiveNaming.cs" Link="Core\ArchiveNaming.cs" />
+    <Compile Include="..\TiaOpennessKit\FolderPackager.cs" Link="Core\FolderPackager.cs" />
+    <Compile Include="..\TiaOpennessKit\Cli\TiaStartMode.cs" Link="Core\Cli\TiaStartMode.cs" />
+    <Compile Include="..\TiaOpennessKit\Tia\TiaEnvironment.cs" Link="Core\Tia\TiaEnvironment.cs" />
+    <Compile Include="..\TiaOpennessKit\Tia\OpennessApi.cs" Link="Core\Tia\OpennessApi.cs" />
+    <Compile Include="..\TiaOpennessKit\Tia\TiaSession.cs" Link="Core\Tia\TiaSession.cs" />
+    <Compile Include="..\TiaOpennessKit\Services\ArchiveService.cs" Link="Core\Services\ArchiveService.cs" />
+    <Compile Include="..\TiaOpennessKit\Services\ApiProbe.cs" Link="Core\Services\ApiProbe.cs" />
+    <!-- 前置条件体检（Openness 组件 / 用户组 / 权限 / TIA 本体 / .NET 版本 / 授权）：
+         纯 BCL、不引用 Siemens 类型，所以也放进了共享内核，新工具可以原样复用 -->
+    <Compile Include="..\TiaOpennessKit\EnvironmentChecks.cs" Link="Core\EnvironmentChecks.cs" />
+    <!-- 界面层的可复用件（主题 / 日志转发 / 现代"选择文件夹"对话框）：
+         同样是纯 WinForms、不引用 Siemens 类型，所以也在内核里，所有工具共用一套外观 -->
+    <Compile Include="..\TiaOpennessKit\UiTheme.cs" Link="Core\UiTheme.cs" />
+    <Compile Include="..\TiaOpennessKit\UiLogSink.cs" Link="Core\UiLogSink.cs" />
+    <Compile Include="..\TiaOpennessKit\ModernFolderDialog.cs" Link="Core\ModernFolderDialog.cs" />
+    <!-- 扫描文件夹找 TIA 项目（纯文件系统，不碰 Openness）：什么算项目、忽略 .backup 等规则只写一处 -->
+    <Compile Include="..\TiaOpennessKit\BatchScanner.cs" Link="Core\BatchScanner.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 清单本身由 <ApplicationManifest> 编译进 exe；这里只是让它在 VS 里看得见，
+         且默认不复制到输出目录（发布产物里不需要它，因为它已经在 exe 里面了） -->
+    <None Include="app.manifest" />
+  </ItemGroup>
+
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

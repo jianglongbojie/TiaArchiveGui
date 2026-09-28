@@ -1,0 +1,25 @@
+# ══════════════════════════════════════════════════════════════════
+#  本仓库只开源"归档工具"部分：TiaArchiveGui + TiaOpennessKit。
+#  （TiaArchiveGui 通过工程文件里的 <Compile Include="..\TiaOpennessKit\..." />
+#    链接引用共享内核，两者必须保持平级目录结构。）
+#  工作区里的其余内容（TiaCaxGui / TiaDeviceGui / 归档 / 学习资料等）一律不跟踪。
+# ══════════════════════════════════════════════════════════════════
+
+/*
+!/.gitignore
+!/.gitattributes
+!/README.md
+!/LICENSE
+!/TiaArchiveGui/
+!/TiaOpennessKit/
+
+# ── 构建产物与开发环境文件 ──
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+*.suo
+*.userprefs
+
+# ── 运行 / 调试产物 ──
+*.log
