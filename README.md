@@ -1,7 +1,7 @@
 # TIA Portal 归档助手（TiaArchiveGui）
 
 用鼠标点几下，完成 **TIA Portal（博途）项目的归档 / 恢复 / 批量备份**。
-基于 Siemens **Openness API**，**一份 exe 通吃 V15~V21** —— 编译期不引用任何 Siemens 程序集，运行期按本机安装的 TIA 版本反射调用，不存在"一份 exe 只认一个版本"的问题。
+基于 Siemens **Openness API**，**一份 exe 通吃 V16~V21** —— 编译期不引用任何 Siemens 程序集，运行期按本机安装的 TIA 版本反射调用，不存在"一份 exe 只认一个版本"的问题。
 
 ![归档页](TiaArchiveGui/screenshots/gui-tab1.png)
 
